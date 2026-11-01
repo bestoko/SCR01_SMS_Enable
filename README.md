@@ -39,14 +39,16 @@ A KernelSU module that enables SMS send/receive on the Samsung **SCR-01 (Galaxy 
 ## 安装 / Installation
 
 1. 从 [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases) 下载 `scr01_sms_enable-v2.0.zip`。
-2. 解压，把 `scr01_sms_enable` 文件夹推送到 `/data/adb/modules/`：
+2. 安装模块（二选一）：
 
-   ```bash
-   adb push scr01_sms_enable /data/local/tmp/
-   adb shell su -c 'cp -r /data/local/tmp/scr01_sms_enable /data/adb/modules/'
-   ```
+   - **方法一（推荐）：用 KernelSU 管理器直接安装 zip**（模块文件在 zip 根目录，管理器可直接识别）。
+   - **方法二（手动）**：解压 zip，把里面的文件（`module.prop`、`boot-completed.sh`、`uninstall.sh`、`payload/`）放进 `/data/adb/modules/scr01_sms_enable/`：
 
-   （也可用 KernelSU 管理器直接安装 zip。）
+     ```bash
+     adb push <解压目录> /data/local/tmp/scr01_sms_enable/
+     adb shell su -c 'cp -r /data/local/tmp/scr01_sms_enable /data/adb/modules/'
+     ```
+
 3. 重启设备。SCRoot 会在开机后几分钟自动重新 root，之后本模块自动生效。
 
 ## 用法 / Usage
