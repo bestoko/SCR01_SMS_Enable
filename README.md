@@ -61,7 +61,7 @@ A KernelSU module that enables SMS send/receive on the Samsung **SCR-01 (Galaxy 
 
   或直接删除 `/data/adb/modules/scr01_sms_enable` 后重启。
 
-## How it works / 工作原理
+## 工作原理 / How it works
 
 SCR-01 自带的静态 product overlay 把系统资源 `config_sms_capable` 写死为 **false**，于是 Android 电话框架会：
 
