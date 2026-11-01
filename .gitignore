@@ -1,0 +1,3 @@
+# release artifacts (do not commit the pre-built zip)
+release/
+.build/
