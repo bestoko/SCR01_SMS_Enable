@@ -5,6 +5,7 @@ LOG="$MODDIR/uninstall.log"
 NSENTER=/system/bin/nsenter
 CINN_TARGET=/product/overlay/AccentColorCinnamon/AccentColorCinnamonOverlay.apk
 ROLE_PROBE="$MODDIR/payload/SmsRoleProbe.dex"
+PROFILE_XML=/data/user_de/0/com.sec.imsservice/shared_prefs/imsprofile_0.xml
 SMS_APP=org.fossify.messages
 CINN_SHA=7a206d842ad6baa60a22e10df8b154dc92b76e4ee3f5006adfbca9c89e2d8f19
 RRO_SHA=5e6d42544f9c03901206a633c967e63836eb76bf4e28fff6c6044b21e043ec6d
@@ -42,11 +43,32 @@ for apn_id in $(content query --uri content://telephony/carriers 2>/dev/null | \
     sed -n 's/.*_id=\([0-9][0-9]*\).*name=SCR01_SMS_IMS_.*/\1/p'); do
     content delete --uri content://telephony/carriers --where "_id=${apn_id}" >>"$LOG" 2>&1
 done
+# 4b. remove the data APNs this module adds for known roaming carriers.
+for apn_id in $(content query --uri content://telephony/carriers 2>/dev/null | \
+    grep -E 'name=(Skinny Internet|CMCC Internet),' | \
+    sed -n 's/.*_id=\([0-9][0-9]*\).*/\1/p'); do
+    content delete --uri content://telephony/carriers --where "_id=${apn_id}" >>"$LOG" 2>&1
+done
 log "IMS APN cleanup done"
 
 # 5. disable volte + smsip.
 content update --uri content://com.sec.ims.settings/imsswitch --bind service:s:volte --bind enabled:b:false >>"$LOG" 2>&1
 content update --uri content://com.sec.ims.settings/imsswitch --bind service:s:smsip --bind enabled:b:false >>"$LOG" 2>&1
 log "volte+smsip disabled"
+
+# 6. restore the original Samsung IMS profile (if it was patched) and restart IMS.
+if [ -f "$MODDIR/imsprofile_0.xml.orig" ] && [ -f "$PROFILE_XML" ]; then
+    cp -f "$MODDIR/imsprofile_0.xml.orig" "$PROFILE_XML" >>"$LOG" 2>&1
+    chown system:system "$PROFILE_XML" >>"$LOG" 2>&1
+    chmod 660 "$PROFILE_XML" >>"$LOG" 2>&1
+    restorecon "$PROFILE_XML" >>"$LOG" 2>&1
+    imspid=$(pidof com.sec.imsservice 2>/dev/null)
+    [ -n "$imspid" ] && kill -9 $imspid 2>/dev/null
+    log "IMS profile restored"
+fi
+
+# 7. revert the roaming-data switch we may have forced on.
+settings put global data_roaming 0 >>"$LOG" 2>&1
+log "data roaming restored to 0"
 
 log "uninstall done"

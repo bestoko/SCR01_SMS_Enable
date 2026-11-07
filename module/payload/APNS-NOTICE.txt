@@ -1,0 +1,12 @@
+APN database (payload/apns.tsv)
+
+Derived from LineageOS android_vendor_apn
+  https://github.com/LineageOS/android_vendor_apn
+Upstream: AOSP apns-conf.xml
+
+Copyright 2011-2026 Google Inc.
+Copyright 2011-2015 The CyanogenMod Project
+Copyright 2017-2026 The LineageOS Project
+
+Licensed under the Apache License, Version 2.0.
+See APNS-LICENSE.txt for the full license text.

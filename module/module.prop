@@ -1,6 +1,6 @@
 id=scr01_sms_enable
 name=SCR-01 SMS Enable
-version=2.1
-versionCode=3
+version=2.2
+versionCode=4
 author=Toko + Deepseek Harness
-description=Enables SMS send+receive on the Samsung SCR-01 (data-only 5G router) by making config_sms_capable visible to the framework via a cinnamon theme overlay, forcing the android.app.role.SMS role into the available-role list, and granting it to a configurable default SMS app (Fossify Messages). v2.1 fixes China Telecom (46011) IMS by creating the IMS APN with numeric 46003 (the PLMN the APN engine actually matches) and stripping ims from built-in APNs. Reversible via uninstall.sh. No real partition is written.
+description=Enables SMS send+receive on the Samsung SCR-01 (data-only 5G router) by making config_sms_capable visible to the framework via a cinnamon theme overlay, forcing the android.app.role.SMS role into the available-role list, and granting it to a configurable default SMS app (Fossify Messages). v2.2 adds a built-in APN database generated from LineageOS android_vendor_apn (Apache-2.0), inserts the missing default/IMS APNs for both the SIM PLMN and the registered PLMN, patches the active Samsung IMS profile (support_roaming, smsip, ipver=ipv4v6, enc_algo=all), rotates its log (128 KiB + one backup), and ships collect-logs.sh for troubleshooting. Mobile data / roaming data can stay OFF: Samsung's always-on IMS PDN still carries SMS (verified with Skinny NZ 53005 roaming on China Mobile 46000). Reversible via uninstall.sh; no real partition is written.
