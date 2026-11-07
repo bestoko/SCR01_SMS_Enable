@@ -38,7 +38,7 @@ A KernelSU module that enables SMS send/receive on the Samsung **SCR-01 (Galaxy 
 
 ## 安装 / Installation
 
-1. 从 [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases) 下载 `scr01_sms_enable-v2.0.zip`。
+1. 从 [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases) 下载 `scr01_sms_enable-v2.1.zip`。
 2. 安装模块（二选一）：
 
    - **方法一（推荐）：用 KernelSU 管理器直接安装 zip**（模块文件在 zip 根目录，管理器可直接识别）。
@@ -86,6 +86,16 @@ The SCR-01's static product overlay hard-codes `config_sms_capable=false`, so th
 3. **Grant the role + configure IMS** by granting `android.app.role.SMS` to the SMS app (which grants RECEIVE_SMS/SEND_SMS/READ_SMS), adding an IMS APN, and enabling volte/smsip so SMS travels over IMS (the device is data-only).
 
 **Why not edit the overlay before boot?** Root arrives late on this device — SCRoot injects a few minutes after boot (via a Mali exploit), by which time zygote has already preloaded framework resources, so a late mount cannot change zygote's cached view. A "soft reboot" (zygote restart) to reload also fails — it breaks the framework because SCRoot's temporary credential hook is one-time. Hence the theme-overlay + process-restart approach.
+
+### 中国电信（46011）特例 / China Telecom (46011) quirk
+
+中国电信有两个历史 PLMN：CDMA 遗留的 **46003** 与 LTE 的 **46011**。部分电信卡的 HPLMN 为空、EHPLMN 为 `46011,46003`，设备的 APN 引擎会按 **46003** 做匹配，于是模块建的 46011 IMS APN 永远不被选中，而内置 `cmnet`（46003，type 带 `ims`）抢走了 IMS 数据连接却拿不到 P-CSCF → IMS 不注册 → 短信“无服务(S4)”。v2.1 对 46011 SIM **同时建 46011 / 46003 两条 IMS APN**，并**剥掉内置 APN 的 `ims` 类型**来修复。
+
+China Telecom has two historical PLMNs: the legacy CDMA **46003** and the LTE **46011**. On some SIMs the HPLMN is empty and the EHPLMN is `46011,46003`, so the APN engine matches on **46003**: the module's 46011 IMS APN is never selected, while the built-in `cmnet` APN (46003, type includes `ims`) grabs the IMS PDN without a P-CSCF → IMS never registers → SMS reports “no service” (S4). v2.1 creates **both 46011 and 46003 IMS APNs** for 46011 SIMs and **strips `ims` from built-in APNs**.
+
+> ⚠️ **其他国家/运营商用户注意 / Note for other countries & carriers**：SIM 的 PLMN 与 APN 匹配的 PLMN 不一致，也可能出现在其他带有历史号段的运营商上。如果刷入模块后短信仍不可用，请检查 `adb shell su -c 'content query --uri content://telephony/siminfo --projection display_name:ehplmns:hplmns'`（`hplmns` 是否为空、`ehplmns` 是否列出多个 PLMN），以及 radio 日志里 `buildWaitingApns: ... operator=XXXX` 是否与 SIM 的 `mccmnc` 不同；如有，请开 issue 附上这些信息，我们会为你的运营商补上 IMS APN。
+>
+> A “SIM PLMN ≠ APN-matching PLMN” mismatch can also occur on other carriers with legacy PLMN codes. If SMS still fails after installing the module, check whether `hplmns` is empty / `ehplmns` lists multiple PLMNs in the siminfo query above, and whether `buildWaitingApns: ... operator=XXXX` in the radio log differs from the SIM's `mccmnc`. If so, please open an issue with those details and we will add an IMS APN for your carrier.
 
 ## 源码结构 / Repository layout
 
