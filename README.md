@@ -37,7 +37,7 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases) 下载 `scr01_sms_enable-v2.2.zip`。
+1. 从 [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases) 下载 `scr01_sms_enable-v2.2.1.zip`。
 2. 安装模块（二选一）：
 
    - **方法一（推荐）：用 KernelSU 管理器直接安装 zip**（模块文件在 zip 根目录，管理器可直接识别）。
@@ -81,6 +81,8 @@ SCR-01 自带的静态 product overlay 把系统资源 `config_sms_capable` 写�
 ### 中国电信（46011）特例
 
 中国电信有两个历史 PLMN：CDMA 遗留的 **46003** 与 LTE 的 **46011**。部分电信卡的 HPLMN 为空、EHPLMN 为 `46011,46003`，设备的 APN 引擎会按 **46003** 做匹配，于是模块建的 46011 IMS APN 永远不被选中，而内置 `cmnet`（46003，type 带 `ims`）抢走了 IMS 数据连接却拿不到 P-CSCF → IMS 不注册 → 短信“无服务(S4)”。v2.1 起对 46011 SIM **同时建 46011 / 46003 两条 IMS APN**，并**剥掉内置 APN 的 `ims` 类型**来修复。
+
+> v2.2.0 回归（issue #1）：代码先判断“已有 IMS APN”再剥离内置 APN 的 `ims`，而内置 `ctnet`/`ctlte` 本身就带 `ims`，于是模块误判“已有”并跳过插入，剥离后设备最终一条 IMS APN 都没有。v2.2.1 改为**先剥离、再补 46011/46003 两条 IMS APN**。
 
 > ⚠️ 其他国家/运营商也可能出现“SIM PLMN 与 APN 匹配 PLMN 不一致”。如果刷入模块后短信仍不可用，请先导出日志（见“排障”），并附上 `adb shell su -c 'content query --uri content://telephony/siminfo --projection display_name:ehplmns:hplmns'` 的结果；如果 `hplmns` 为空或 `ehplmns` 列出多个 PLMN，请开 issue。
 

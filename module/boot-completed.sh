@@ -231,32 +231,16 @@ else
 
     [ -f "$APN_DB" ] && log "APN database rows: $(wc -l < "$APN_DB")" || log "WARN APN database missing: $APN_DB"
 
-    # 7a. IMS APNs for the SIM PLMN and the current registered PLMN (dedup).
-    SEEN=""
-    for NUM in "$HOME_PLMN" "$REG_PLMN"; do
-        [ -n "$NUM" ] || continue
-        case " $SEEN " in *" $NUM "*) continue;; esac
-        SEEN="$SEEN $NUM"
-        ensure_ims_apn "$NUM" || log "WARN no IMS APN for $NUM"
-    done
+    # China Telecom quirk: a 46011 SIM is matched by the APN engine with 46003
+    # (EHPLMN), so handle both PLMNs. v2.1 had this; the v2.2 rewrite dropped it.
+    PLMN_LIST="$HOME_PLMN $REG_PLMN"
+    case " $PLMN_LIST " in *" 46011 "*) PLMN_LIST="$PLMN_LIST 46003";; esac
+    case " $PLMN_LIST " in *" 46003 "*) PLMN_LIST="$PLMN_LIST 46011";; esac
 
-    # 7b. Default/data APNs from the built-in database; known extras as fallback.
-    SEEN=""
-    for NUM in "$HOME_PLMN" "$REG_PLMN"; do
-        [ -n "$NUM" ] || continue
-        case " $SEEN " in *" $NUM "*) continue;; esac
-        SEEN="$SEEN $NUM"
-        ensure_apn_from_db "$NUM" "default" || log "APN DB: no default APN for $NUM"
-    done
-    case "$HOME_PLMN" in
-        53005)
-            apn_type_exists "$HOME_PLMN" "default" || \
-                ensure_apn_from_db "$HOME_PLMN" "default" || \
-                log "WARN no Skinny default APN"
-            ;;
-    esac
-
-    # 7c. strip "ims" from built-in APNs so they do not steal the IMS PDN.
+    # 7a. Strip "ims" from built-in APNs FIRST. If IMS APNs are ensured before
+    # this step, apn_type_exists sees the built-in "default,...,ims,..." row,
+    # skips the dedicated IMS APN, and this strip then leaves the device with
+    # no IMS APN at all (issue #1, China Telecom 46011/46003).
     content query --uri content://telephony/carriers --projection _id:name:type 2>/dev/null | \
     while IFS= read -r row; do
         [ -n "$row" ] || continue
@@ -278,6 +262,31 @@ else
         content update --uri content://telephony/carriers --bind type:s:"$new_type" --where "_id=$apn_id" >>"$LOG" 2>&1
         log "stripped ims from APN $apn_id ($apn_type -> $new_type)"
     done
+
+    # 7b. IMS APNs for every PLMN the APN engine may match (dedup).
+    SEEN=""
+    for NUM in $PLMN_LIST; do
+        [ -n "$NUM" ] || continue
+        case " $SEEN " in *" $NUM "*) continue;; esac
+        SEEN="$SEEN $NUM"
+        ensure_ims_apn "$NUM" || log "WARN no IMS APN for $NUM"
+    done
+
+    # 7c. Default/data APNs from the built-in database; known extras as fallback.
+    SEEN=""
+    for NUM in $PLMN_LIST; do
+        [ -n "$NUM" ] || continue
+        case " $SEEN " in *" $NUM "*) continue;; esac
+        SEEN="$SEEN $NUM"
+        ensure_apn_from_db "$NUM" "default" || log "APN DB: no default APN for $NUM"
+    done
+    case "$HOME_PLMN" in
+        53005)
+            apn_type_exists "$HOME_PLMN" "default" || \
+                ensure_apn_from_db "$HOME_PLMN" "default" || \
+                log "WARN no Skinny default APN"
+            ;;
+    esac
 
     # 7d. enable the Samsung IMS switches.
     content update --uri content://com.sec.ims.settings/imsswitch --bind service:s:smsip --bind enabled:b:true >>"$LOG" 2>&1

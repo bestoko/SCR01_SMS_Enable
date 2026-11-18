@@ -37,7 +37,7 @@ A KernelSU module that enables SMS send/receive on the Samsung **SCR-01 (Galaxy 
 
 ## Installation
 
-1. Download `scr01_sms_enable-v2.2.zip` from [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases).
+1. Download `scr01_sms_enable-v2.2.1.zip` from [Releases](https://github.com/bestoko/SCR01_SMS_Enable/releases).
 2. Install the module (either way):
 
    - **Recommended: install the zip directly from the KernelSU manager** (module files are at the zip root).
@@ -81,6 +81,8 @@ The module fixes all three at runtime without touching real partitions:
 ### China Telecom (46011) quirk
 
 China Telecom has two historical PLMNs: the legacy CDMA **46003** and the LTE **46011**. On some SIMs the HPLMN is empty and the EHPLMN is `46011,46003`, so the APN engine matches on **46003**: the module's 46011 IMS APN is never selected, while the built-in `cmnet` APN (46003, type includes `ims`) grabs the IMS PDN without a P-CSCF → IMS never registers → SMS reports "no service" (S4). Since v2.1 the module creates **both 46011 and 46003 IMS APNs** for 46011 SIMs and **strips `ims` from built-in APNs**.
+
+> v2.2.0 regression (issue #1): the code checked for an existing IMS APN before stripping the built-in `ims` types. The built-in `ctnet`/`ctlte` APNs already carry `ims`, so the module skipped inserting a dedicated IMS APN; after stripping, the device had none. v2.2.1 strips first and then ensures both 46011/46003 IMS APNs.
 
 > ⚠️ A "SIM PLMN ≠ APN-matching PLMN" mismatch can also occur on other carriers with legacy PLMN codes. If SMS still fails, collect the logs (see Troubleshooting) and include the output of `adb shell su -c 'content query --uri content://telephony/siminfo --projection display_name:ehplmns:hplmns'`; if `hplmns` is empty or `ehplmns` lists multiple PLMNs, please open an issue.
 
